@@ -2,83 +2,87 @@ import asyncio
 import websockets
 import json
 
-# Temporary storage for channels and users (in-memory)
-channels = {}
+clients = {}  # Store connected clients by channel
 
-
-async def echo(websocket, path):  # Added the 'path' argument
-    channels = channels
-    print(f"New connection from {websocket.remote_address}, path: {path}")  # Log the path
+async def chat(websocket, path):
+    channel_name = None
+    username = None
+    print(f"New connection: {websocket.remote_address}")
     try:
         async for message in websocket:
             print(f"Received: {message}")
-            data = json.loads(message)
-            action = data.get("action")
+            try:
+                data = json.loads(message)
+                action = data.get('action')
+                channel = data.get('channel')
+                user = data.get('username')
+                password = data.get('password')
+                text = data.get('text')
 
-            if action == "join":
-                channel_name = data.get("channel")
-                username = data.get("username")
-                password = data.get("password")
+                if action == 'join':
+                    if channel and user:
+                        if channel not in clients:
+                            clients[channel] = {'users': {}, 'history': [], 'password': None}
+                        if clients[channel]['password'] and clients[channel]['password'] != password:
+                            await websocket.send(json.dumps({'type': 'error', 'message': 'Incorrect password'}))
+                            continue
+                        clients[channel]['users'][websocket] = user
+                        await websocket.send(json.dumps({'type': 'joined', 'channel': channel}))
+                        await broadcast(channel, f'{user} joined the chat.')
+                    else:
+                        await websocket.send(json.dumps({'type': 'error', 'message': 'Channel and username required.'}))
 
-                if channel_name and username:
-                    if channel_name not in channels:
-                        channels[channel_name] = {"users": [], "history": [], "password": None}
+                elif action == 'create':
+                    if channel and user:
+                        if channel in clients:
+                            await websocket.send(json.dumps({'type': 'error', 'message': 'Channel already exists.'}))
+                            continue
+                        clients[channel] = {'users': {}, 'history': [], 'password': password if password else None}
+                        clients[channel]['users'][websocket] = user
+                        await websocket.send(json.dumps({'type': 'created', 'channel': channel}))
+                        await broadcast(channel, f'{user} created the channel.')
+                    else:
+                        await websocket.send(json.dumps({'type': 'error', 'message': 'Channel and username required.'}))
 
-                    if (
-                        channels[channel_name]["password"]
-                        and channels[channel_name]["password"] != password
-                    ):
-                        await websocket.send(
-                            json.dumps({"type": "error", "message": "Incorrect password"})
-                        )
-                        continue  # Don't add the user if password is wrong
-
-                    channels[channel_name]["users"].append(username)
-                    print(f"Sending joined message for channel: {channel_name}")
-                    await websocket.send(
-                        json.dumps({"type": "joined", "channel": channel_name})
-                    )
-                    print(f"Sent joined message for channel: {channel_name}")
+                elif action == 'message' and channel and user and text:
+                    await broadcast(channel, f'{user}: {text}')
+                    clients[channel]['history'].append({'user': user, 'text': text})
                 else:
-                    print("Channel and username required for join.")
-                    await websocket.send(
-                        json.dumps(
-                            {"type": "error", "message": "Channel and username required"}
-                        )
-                    )
+                    await websocket.send(json.dumps({'type': 'error', 'message': 'Invalid action or data.'}))
 
-            elif action == "create":
-                # Implement create logic later
-                pass
-            elif action == "message":
-                # Implement message logic later
-                pass
+            except json.JSONDecodeError:
+                await websocket.send(json.dumps({'type': 'error', 'message': 'Invalid JSON.'}))
+            except Exception as e:
+                print(f"Error processing message: {e}")
 
-            else:
-                print(f"Invalid action: {action}")
-                await websocket.send(
-                    json.dumps({"type": "error", "message": "Invalid action"})
-                )
-
-    except websockets.exceptions.ConnectionClosed as exc:
-        print(f"Connection closed: {exc}")
-    except websockets.exceptions.ConnectionClosedOK as exc:
-        print(f"Connection closed normally: {exc}")
-    except json.JSONDecodeError:
-        print("Invalid JSON received")
-    except Exception as e:
-        print(f"Exception in echo: {e}")
-        import traceback
-        traceback.print_exc()
-
+    except websockets.exceptions.ConnectionClosedError:
+        print(f"Connection closed abruptly: {websocket.remote_address}")
+    except websockets.exceptions.ConnectionClosedOK:
+        print(f"Connection closed normally: {websocket.remote_address}")
     finally:
-        print(f"Connection closed from server: {websocket.remote_address}")
+        for channel, data in list(clients.items()):
+            if websocket in data['users']:
+                username_leaving = data['users'].pop(websocket)
+                await broadcast(channel, f'{username_leaving} left the chat.')
+                if not data['users']:
+                    del clients[channel]
+                    print(f"Channel '{channel}' deleted.")
+                break
+
+async def broadcast(channel, message):
+    if channel in clients:
+        for client in clients[channel]['users']:
+            try:
+                await client.send(json.dumps({'type': 'message', 'user': 'System', 'text': message}))
+            except websockets.exceptions.ConnectionClosedError:
+                print(f"Error broadcasting to a closed connection.")
+            except Exception as e:
+                print(f"Broadcast error: {e}")
 
 async def main():
-    async with websockets.serve(echo, "localhost", 8765):  # Use a different port (e.g., 8765)
+    async with websockets.serve(chat, "localhost", 8765):
         print("WebSocket server started at ws://localhost:8765")
         await asyncio.Future()  # Run forever
 
-
-if __name__ == "__main__":
+if __name__ == '__main__':
     asyncio.run(main())

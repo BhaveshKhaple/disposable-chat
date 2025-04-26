@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const createPasswordLabel = document.querySelector('#create-channel-section label[for="create-password"]');
 
     // WebSocket connection
-    const ws = new WebSocket('ws://localhost:8765');
+    const ws = new WebSocket('ws://localhost:8765');  // Changed port
 
     ws.onopen = function() {
         console.log('WebSocket connection established.');
@@ -24,9 +24,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (data.type === 'joined') {
                 const username = usernameInput.value;
                 const channel = data.channel;
-                console.log('About to redirect to chat.html'); // Added log
+                console.log('About to redirect to chat.html');
                 window.location.href = `chat.html?username=${encodeURIComponent(username)}&channel=${encodeURIComponent(channel)}`;
-                console.log('Redirected to chat.html'); // Added log (this might not execute if redirect is immediate)
+                console.log('Redirected to chat.html');
             } else if (data.type === 'error') {
                 alert('Error: ' + data.message);
             }
@@ -41,7 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     ws.onerror = function(error) {
         console.error('WebSocket error:', error);
-        console.trace(); // Added stack trace
+        console.trace();
     };
 
     // Toggle visibility of create password field
@@ -55,20 +55,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle Join button click
     if (joinButton) {
         joinButton.addEventListener('click', function() {
-            console.log('Join button clicked.'); // Added log
+            console.log('Join button clicked.');
             const username = usernameInput.value.trim();
             const channel = joinChannelNameInput.value.trim();
             const password = joinPasswordInput.value;
 
             if (username && channel) {
-                console.log('Sending join message.'); // Added log
+                console.log('Sending join message.');
                 ws.send(JSON.stringify({
                     action: 'join',
                     username: username,
                     channel: channel,
                     password: password
                 }));
-                console.log('Join message sent.'); // Added log
+                console.log('Join message sent.');
             } else {
                 alert('Please enter a username and channel name to join.');
             }
@@ -78,20 +78,20 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle Create button click
     if (createButton) {
         createButton.addEventListener('click', function() {
-            console.log('Create button clicked.'); // Added log
+            console.log('Create button clicked.');
             const username = usernameInput.value.trim();
             const channel = createChannelNameInput.value.trim();
             const password = enablePasswordCheckbox.checked ? createPasswordField.value : null;
 
             if (username && channel) {
-                console.log('Sending create message.'); // Added log
+                console.log('Sending create message.');
                 ws.send(JSON.stringify({
                     action: 'create',
                     username: username,
                     channel: channel,
                     password: password
                 }));
-                console.log('Create message sent.'); // Added log
+                console.log('Create message sent.');
             } else {
                 alert('Please enter a username and channel name to create.');
             }
