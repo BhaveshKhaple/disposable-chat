@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disposable Chat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to Disposable Chat</h1>
+
+        <div id="username-section">
+            <label for="username">Enter Username:</label>
+            <input type="text" id="username" placeholder="Choose a username">
+        </div>
+
+        <div id="join-channel-section">
+            <h2>Join Existing Channel</h2>
+            <label for="join-channel-name">Channel Name:</label>
+            <input type="text" id="join-channel-name" placeholder="Enter channel name">
+            <label for="join-password" style="display: none;">Password:</label>
+            <input type="password" id="join-password" placeholder="Password (if required)" style="display: none;">
+            <button id="join-button">Join</button>
+        </div>
+
+        <div id="create-channel-section">
+            <h2>Create New Channel</h2>
+            <label for="create-channel-name">Channel Name:</label>
+            <input type="text" id="create-channel-name" placeholder="Choose a unique name">
+            <input type="checkbox" id="enable-password">
+            <label for="enable-password">Password Protect?</label>
+            <label for="create-password" style="display: none;">Password:</label>
+            <input type="password" id="create-password" placeholder="Set a password" style="display: none;">
+            <button id="create-button">Create</button>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

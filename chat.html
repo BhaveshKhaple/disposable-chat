@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat</title>
+</head>
+<body>
+    <h1>Chat Room</h1>
+    <div id="chat-container">
+        </div>
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const username = urlParams.get('username');
+        const channel = urlParams.get('channel');
+
+        document.title = `Chat - ${channel}`;
+        document.getElementById('chat-container').innerHTML = `Welcome, ${username}! You are in channel: ${channel}`;
+    </script>
+</body>
+</html>
